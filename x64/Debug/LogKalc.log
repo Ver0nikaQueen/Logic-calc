@@ -1,0 +1,11 @@
+﻿  LK.c
+C:\Users\User\Source\Repos\LogKalc\LK.c(25,2): warning C4013: gets: нет определения; предполагается "extern" с возвратом типа "int"
+C:\Users\User\Source\Repos\LogKalc\LK.c(47,12): warning C4244: инициализация: преобразование "double" в "int", возможна потеря данных
+C:\Users\User\Source\Repos\LogKalc\LK.c(73,6): warning C4013: prioritet: нет определения; предполагается "extern" с возвратом типа "int"
+C:\Users\User\Source\Repos\LogKalc\LK.c(104): warning C4716: clean: должна возвращать значение
+C:\Users\User\Source\Repos\LogKalc\LK.c(87): warning C4715: calc: значение возвращается не при всех путях выполнения
+C:\Users\User\Source\Repos\LogKalc\LK.c(117): warning C4716: pro: должна возвращать значение
+C:\Users\User\Source\Repos\LogKalc\LK.c(139): warning C4716: inver: должна возвращать значение
+C:\Users\User\Source\Repos\LogKalc\LK.c(169): warning C4716: prioritet: должна возвращать значение
+C:\Users\User\Source\Repos\LogKalc\LK.c(130): warning C4716: cumm: должна возвращать значение
+  LogKalc.vcxproj -> C:\Users\User\Source\Repos\LogKalc\x64\Debug\LogKalc.exe
