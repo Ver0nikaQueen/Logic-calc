@@ -5,40 +5,48 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <math.h>
-char calc( char* gen, int* pas, char* var, int k );
-int clean( char* gen );
-int inver( char* gen, int* pas, char* var, int k, int i );
-int pro( char* gen, int* pas, char* var, int k, int i );
-int cumm( char* gen, int* pas, char* var, int k, int i );
+char calc( char* gen,int len, int* pas, char* var, int k, char * op );
+void clean( char* gen );
+void NOT( char* gen, int* pas, char* var, int k, int i );
+void AND( char* gen, int* pas, char* var, int k, int i );
+void OR ( char* gen, int* pas, char* var, int k, int i );
+void XOR( char* gen, int* pas, char* var, int k, int i );
+void IMP( char* gen, int* pas, char* var, int k, int i );
+void EQU( char* gen, int* pas, char* var, int k, int i );
+void prioritet( char* gen, int* pas, char* var, int k, int strt, int endf,  char * op );
 int main( ) {
 	setlocale( LC_ALL, "RUS" );
 	system( "title Логический калькулятор " );
-	int kolvo = 5;
-	char* varia = ( char* ) calloc( kolvo, sizeof( int ) );
-	varia [0] = '&'; varia [1] = '|'; varia [2] = '('; varia [3] = ')'; varia [4] = '!';
-	printf( "Символы операций:\n" );
-	printf( "Конъюкция - &, дизъюнкция - |, инверсия - !. +скобки\n" );
-	printf( "Ввод символов переменных не ограничен(но длина формулы без = не более 8)\n" );
-	printf( "Примеры выражений: k&(O|!t), m&r|a&k\n" );
-	printf( "Введите уравнение с '=' >>> " );
+	char operations [8] = { '!', '&', '|', '^', '>', '~', '(', ')'};
+	char* oper = operations;
+	printf( "Символы операций:\n" ); 	printf( "NOT - !, AND - &, OR - |, XOR - ^, IMP - >, EQU - ~,  +скобки\n" ); 	printf( "Примеры выражений: k&(O|!t), m&r|a&k\n" ); 	printf( "Введите уравнение с '=' >>> " );
 	char str [100]; int lenth = 0;
 	gets( str );
 	for (int i = 0; i < sizeof( str ); i++) { if (str [i] == '=') break;	lenth = i + 1; }
+	char formula [50] = { ' ' }; char * fo = formula;
+	int kolvo=0; char* varia = ( char* ) calloc( kolvo, sizeof( int ) );
+	for (int i = 0; i < lenth; i++) formula [i] = str [i];
 	int flag = 0;
-	char* general = ( char* ) calloc( lenth, sizeof( char ) );//	ОШИБКА!!!
-
-	for (int i = 0; i < lenth; i++) general [i] = str [i];
-	for (int i = 0; i < lenth; i++) {
+	for (int i = 0; i < sizeof(formula); i++) {
+		if (formula [i] == ' ') break;
 		flag = 0;
-		for (int j = 0; j < kolvo; j++) if (varia [j] == general [i]) flag = 1;
-		if (flag != 1) {
-			varia = ( char* ) realloc( varia, sizeof( char ) * ( ++kolvo ) );
-			varia [kolvo - 1] = general [i];
+		for (int j = 0; j < sizeof( operations ); j++) {
+			if (operations [j] == formula [i]) { 
+				flag = 1;
+				break;
+			}
 		}
-	}
-	for (int i = 0; i < kolvo - 5; i++) varia [i] = varia [i + 5];
-	//printf("%d\n",kolvo );
-	kolvo -= 5;
+		if (flag != 1) {
+			for (int j = 0; j < kolvo;j++) if (varia [j] == formula [i]) {
+				flag = 1;
+				break;
+			}
+			if (flag != 1) {
+				varia = ( char* ) realloc( varia, sizeof( char ) * ( ++kolvo ) );
+				varia [kolvo - 1] = formula [i];
+			}
+		}
+	}kolvo--;
 	int* pass = ( int* ) calloc( kolvo, sizeof( int ) );
 	for (int i = 0; i < kolvo; i++) printf( "| %c ", varia [i] );
 	printf( "|  РЕЗУЛЬТАТ\n" );
@@ -48,61 +56,57 @@ int main( ) {
 			pass [g] = r % 2;
 			printf( "| %d ", pass [g] );
 		}
-		if (calc( general, pass, varia, kolvo ) == '0') printf( "|  ЛОЖЬ\n" );
+		if (calc( fo,lenth, pass, varia, kolvo, oper ) == '0') printf( "|  ЛОЖЬ\n" );
 		else printf( "|  ИСТИНА\n" );
-		for (int i = 0; i < lenth; i++) general [i] = str [i];
+		for (int i = 0; i < lenth; i++) formula [i] = str [i];
 	}
 }
-char calc( char* gen, int* pas, char* var, int k ) {
+char calc( char* gen,int len, int* pas, char* var, int k, char * op ) {
 	//заполнение формулы по текущим значениям
-	for (int i = 0; i < sizeof( gen ); i++) {
+	for (int i = 0; i < len; i++) { 
 		for (int j = 0; j < k; j++) {
 			if (var [j] == gen [i]) {
 				if (pas [j] == 0)  gen [i] = '0';
 				else gen [i] = '1';
+				break;
 			}
 		}
-	}//поиск скобок, без скобок работает шикарно
-	//printf( "\n" ); for (int t = 0; t < 13; t++)printf( "%c ", gen [t] ); printf( "\n" );
-	for (int i = 0; i < sizeof( gen ); i++) {
-		if (gen [i] == ')') {
-			//printf( "\n" ); for (int t = 0; t < 11; t++)printf( "%c ", gen [t] ); printf( "\n" );
-			for (int j = i; j > 0; j--) {
-				if (gen [j] == '(') {
-					//printf("--%d %d--", i, j );
-					prioritet( gen, pas, var, k, j, i + 1 );
-					//printf( "\n" ); for (int t = 0; t < 11; t++)printf( "%c ", gen [t] ); printf( "\n" );
-					gen [j] = '?';
-					gen [j + 2] = '?';
-					//printf( "\n" ); for (int t = 0; t < 11; t++)printf( "%c ", gen [t] ); printf( "\n" );
-					clean( gen );
-					i = 0;
-				}
+	} 
+	//поиск скобок и выполнение операций в них
+	for (int i = 0; i < len; i++) {
+		if (gen [i] == ')') for (int j = i; j >= 0; j--) {
+			if (gen [j] == '(') {
+				prioritet( gen, pas, var, k, j, i, op );
+				gen [j] = '?';
+				gen [j+2] = '?';
+				clean(gen );
+				i=0; j=0;
 			}
 		}
-	}
-	prioritet( gen, pas, var, k, 0, sizeof( gen ) );
-	if (gen [0] == '(') return gen [1];
-	else gen [0];
+	}//выполнение остатков
+	prioritet( gen, pas, var, k, 0, len, op );
+	return gen [0];
 }
-int clean( char* gen ) {
-	int trig = 0;
-	for (int i = 0; i < sizeof( gen ); i++) if (gen [i] == '?') {
-		trig++;
-		break;
+void clean( char* gen) {
+	int trig = 0; int konec=0;
+	for (int i = 0; i < 50; i++){
+		if (gen [i] == '?') trig++;
+		if (gen[i]!=' ') konec++;
 	}
-	if (trig != 0) {
-		for (int i = sizeof( gen ) - 1; i > 0; i--) {//сдвиг на лишнее
-			if (gen [i] == '?') {
-				for (int j = i; j < sizeof( gen ) - 1; j++) gen [j] = gen [j + 1];
-			}
-		}
-		for (int i = sizeof( gen ) - 1; i > 0; i--) {//унитожаем лишнее
-			if (gen [i] == gen [i - 1]) gen [i] = ' ';
+	//сдвиг на лишнее
+	for (int i = konec; i >= 0; i--) {
+		if (gen [i] == '?') {
+			for (int j = i; j < konec; j++) gen [j] = gen [j + 1];
 		}
 	}
+	//чистим лишнее
+	while (1) {
+		gen[konec-trig]= ' ';
+		trig--;
+		if (trig==0) break;
+	}	
 }
-int pro( char* gen, int* pas, char* var, int k, int i ) {
+void AND( char* gen, int* pas, char* var, int k, int i) {
 	int tem1 = 0, tem2 = 0;
 	if (gen [i - 1] == '0') tem1 = 0;
 	else tem1 = 1;
@@ -110,12 +114,11 @@ int pro( char* gen, int* pas, char* var, int k, int i ) {
 	else tem2 = 1;
 	if (tem1 == 1 && tem2 == 1) gen [i - 1] = '1';
 	else gen [i - 1] = '0';
-	//printf( "!%c ", gen [i-1] );
 	gen [i] = '?';
 	gen [i + 1] = '?';
-	clean( gen );
+	clean( gen);
 }
-int cumm( char* gen, int* pas, char* var, int k, int i ) {
+void OR ( char* gen, int* pas, char* var, int k, int i) {
 	int tem1 = 0, tem2 = 0;
 	if (gen [i - 1] == '0') tem1 = 0;
 	else tem1 = 1;
@@ -123,47 +126,87 @@ int cumm( char* gen, int* pas, char* var, int k, int i ) {
 	else tem2 = 1;
 	if (tem1 == 0 && tem2 == 0) gen [i - 1] = '0';
 	else gen [i - 1] = '1';
-	//printf( "!%c ", gen [i - 1] );
 	gen [i] = '?';
 	gen [i + 1] = '?';
-	clean( gen );
+	clean( gen);
 }
-int inver( char* gen, int* pas, char* var, int k, int i ) {
+void XOR( char* gen, int* pas, char* var, int k, int i) {
+	int tem1 = 0, tem2 = 0;
+	if (gen [i - 1] == '0') tem1 = 0;
+	else tem1 = 1;
+	if (gen [i + 1] == '0') tem2 = 0;
+	else tem2 = 1;
+	if (tem1 == tem2 ) gen [i - 1] = '0';
+	else gen [i - 1] = '1';
+	gen [i] = '?';
+	gen [i + 1] = '?';
+	clean( gen);
+}
+void IMP( char* gen, int* pas, char* var, int k, int i) {
+	int tem1 = 0, tem2 = 0;
+	if (gen [i - 1] == '0') tem1 = 0;
+	else tem1 = 1;
+	if (gen [i + 1] == '0') tem2 = 0;
+	else tem2 = 1;
+	if (tem1 == 1 && tem2==0) gen [i - 1] = '0';
+	else gen [i - 1] = '1';
+	gen [i] = '?';
+	gen [i + 1] = '?';
+	clean( gen);
+}
+void EQU( char* gen, int* pas, char* var, int k, int i) {
+	int tem1 = 0, tem2 = 0;
+	if (gen [i - 1] == '0') tem1 = 0;
+	else tem1 = 1;
+	if (gen [i + 1] == '0') tem2 = 0;
+	else tem2 = 1;
+	if (tem1 == tem2 ) gen [i - 1] = '1';
+	else gen [i - 1] = '0';
+	gen [i] = '?';
+	gen [i + 1] = '?';
+	clean( gen);
+}
+void NOT( char* gen, int* pas, char* var, int k, int i) {
 	int tem = 0;
 	if (gen [i + 1] == '0') tem = 0;
 	else tem = 1;
 	if (tem == 0)  gen [i] = '1';
 	else gen [i] = '0';
 	gen [i + 1] = '?';
-	clean( gen );
+	clean( gen);
 }
-int prioritet( char* gen, int* pas, char* var, int k, int strt, int endf ) {
-	for (int i = strt; i < endf; i++) {
-		int trig = 0;
+void prioritet( char* gen, int* pas, char* var, int k, int strt, int endf, char * op) {
+	int gg=0;
+	while (gg < 6) {
 		for (int i = strt; i < endf; i++) {
-			if (gen [i] == '!') {
-				trig++;
-				break;
-			}
-		}
-		if (gen [i] == '!') { inver( gen, pas, var, k, i ); i = strt; trig++; }
-		if (trig == 0) {
-			for (int i = strt; i < endf; i++) {
-				if (gen [i] == '&') {
-					trig++;
+			int trig = 0;
+			if (gen [i] == op [gg]) {
+				switch (gg)
+				{
+				case 0:
+					NOT( gen, pas, var, k, i);  
+					break; 
+				case 1:
+					AND( gen, pas, var, k, i);
+					break;
+				case 2:
+					OR( gen, pas, var, k, i);
+					break;
+				case 3:
+					XOR( gen, pas, var, k, i);
+					break;
+				case 4:
+					IMP( gen, pas, var, k, i);
+					break;
+				case 5:
+					EQU( gen, pas, var, k, i);
+					break;
+				default:
 					break;
 				}
+				i = strt; 	trig++;
 			}
-			if (gen [i] == '&') { pro( gen, pas, var, k, i ); i = strt; trig++; }
-			if (trig == 0) {
-				for (int i = strt; i < endf; i++) {
-					if (gen [i] == '|') {
-						trig++;
-						break;
-					}
-				}
-				if (gen [i] == '|') { cumm( gen, pas, var, k, i ); i = strt; }
-			}
+			if (trig == 0 && i == endf - 1) { gg++; }
 		}
 	}
 }
